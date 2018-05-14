@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const TIMEOUT = 5
+const TIMEOUT = 10
 
 var words = []string{
 	"advertisement",
@@ -36,6 +36,13 @@ var words = []string{
 	"jerk",
 }
 
+type QA struct {
+	Good      int
+	Bad       int
+	Counter   int
+	Questions []string
+}
+
 func read(r io.Reader) <-chan string {
 	ch := make(chan string)
 	go func() {
@@ -49,33 +56,62 @@ func read(r io.Reader) <-chan string {
 	return ch
 }
 
-func makeWordTest(n int) string {
-	if len(words) < n {
-		return words[n]
+func (qa *QA) makeQuestion() string {
+	if len(qa.Questions) < qa.Counter+1 {
+		qa.Counter = 0
+	} else {
+		qa.Counter++
 	}
 
-	return words[0]
+	return qa.Questions[qa.Counter]
+}
+
+func (qa *QA) checkAnswer(question, answer string) bool {
+	if question == answer {
+		qa.Good++
+		return true
+	} else {
+		qa.Bad++
+		return false
+	}
+}
+
+func NewQA(questions []string) *QA {
+	return &QA{
+		Good:      0,
+		Bad:       0,
+		Counter:   -1,
+		Questions: questions,
+	}
 }
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT*time.Second)
 	defer cancel()
-	n := 0
 
+	qa := NewQA(words)
 	ch := read(os.Stdin)
 LOOP:
 	for {
-		word := makeWordTest(n)
+		question := qa.makeQuestion()
+		fmt.Printf("%s > ", question)
 
 		select {
-		case s, ok := <-ch:
+		case answer, ok := <-ch:
 			if !ok {
 				break LOOP
 			}
-			fmt.Println(word, s)
+			if qa.checkAnswer(question, answer) {
+				fmt.Println("✓ That's right!")
+			} else {
+				fmt.Println("✗ Oh, bad")
+			}
 		case <-ctx.Done():
 			fmt.Println("Timeout")
 			break LOOP
 		}
 	}
+
+	fmt.Printf("Good: %d\n", qa.Good)
+	fmt.Printf("Bad: %d\n", qa.Bad)
 }
