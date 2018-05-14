@@ -19,7 +19,8 @@ func NewQA(questions []string) *QA {
 
 // MakeQuestion makes question from given English word list.
 func (qa *QA) MakeQuestion() string {
-	if len(qa.Questions) < qa.Counter+1 {
+	// 出題範囲数を超えたら初めに戻る
+	if len(qa.Questions) <= qa.Counter+1 {
 		qa.Counter = 0
 	} else {
 		qa.Counter++

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 )
 
 var words = []string{
@@ -33,6 +32,9 @@ var words = []string{
 	"jerk",
 }
 
+const CORRECT_MESSAGE = "✓ That's right!"
+const INCORRECT_MESSAGE = "✗ Oh, bad"
+
 func read(r io.Reader) <-chan string {
 	ch := make(chan string)
 	go func() {
@@ -47,9 +49,9 @@ func read(r io.Reader) <-chan string {
 }
 
 // Run starts typing game.
-func Run(ctx context.Context) {
+func Run(ctx context.Context, r io.Reader) {
 	qa := NewQA(words)
-	ch := read(os.Stdin)
+	ch := read(r)
 LOOP:
 	for {
 		question := qa.MakeQuestion()
@@ -61,9 +63,9 @@ LOOP:
 				break LOOP
 			}
 			if qa.CheckAnswer(question, answer) {
-				fmt.Println("✓ That's right!")
+				fmt.Println(CORRECT_MESSAGE)
 			} else {
-				fmt.Println("✗ Oh, bad")
+				fmt.Println(INCORRECT_MESSAGE)
 			}
 		case <-ctx.Done():
 			fmt.Println("Timeout")
